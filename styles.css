@@ -1,0 +1,431 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Cormorant Garamond', serif;
+  color: #2c4a3d;
+  line-height: 1.6;
+  min-height: 100vh;
+  background: linear-gradient(
+    125deg,
+    #ffecf2,
+    #e8f3ec,
+    #e6eeff,
+    #f0e6ff,
+    #ffe6f0
+  );
+  background-size: 400% 400%;
+  animation: gradientFlow 10s ease-in-out infinite alternate;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+  position: relative;
+  z-index: 2;
+}
+
+h1 {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+  color: #2c4a3d;
+  font-weight: 500;
+}
+
+.subtitle {
+  font-size: 1.5rem;
+  margin-bottom: 3rem;
+  color: #557c6c;
+}
+
+.content-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    margin-top: 2rem;
+}
+
+.audio-players {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1.5rem;
+}
+
+.productivity-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.productivity-card {
+    background-color: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(5px);
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.productivity-card:hover {
+    transform: translateY(-5px);
+}
+
+.productivity-card p {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    color: #2c4a3d;
+}
+
+.audio-player {
+  background-color: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(5px);
+  padding: 2rem;
+  border-radius: 15px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+  min-width: 160px;
+}
+
+.audio-player:hover {
+  transform: translateY(-5px);
+}
+
+.audio-player p {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #2c4a3d;
+}
+
+.play-pause {
+  background-color: #557c6c;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 25px;
+  cursor: pointer;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.play-pause:hover {
+  background-color: #2c4a3d;
+}
+
+.volume {
+  width: 100%;
+  height: 8px;
+  -webkit-appearance: none;
+  background: #d1e5dd;
+  border-radius: 4px;
+  outline: none;
+}
+
+.volume::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #557c6c;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.volume::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #557c6c;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+.animated-elements {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Petal styles */
+.petal {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23ffccd5" d="M12,2C8,2,6,6,6,6s4,2,6,2s6-2,6-2S16,2,12,2z"/></svg>') no-repeat center center;
+    background-size: contain;
+}
+
+.petal1 { left: 10%; animation: falling 6s infinite linear; }
+.petal2 { left: 25%; animation: falling 8s infinite linear; animation-delay: 1s; }
+.petal3 { left: 40%; animation: falling 7s infinite linear; animation-delay: 2s; }
+.petal4 { left: 55%; animation: falling 9s infinite linear; animation-delay: 0.5s; }
+.petal5 { left: 70%; animation: falling 6s infinite linear; animation-delay: 1.5s; }
+.petal6 { left: 85%; animation: falling 8s infinite linear; animation-delay: 2.5s; }
+.petal7 { left: 95%; animation: falling 7s infinite linear; animation-delay: 3s; }
+.petal8 { left: 15%; animation: falling 9s infinite linear; animation-delay: 3.5s; }
+
+@keyframes falling {
+    0% {
+        top: -10%;
+        transform: rotate(0deg) translateX(0);
+    }
+    100% {
+        top: 110%;
+        transform: rotate(360deg) translateX(100px);
+    }
+}
+
+@keyframes gradientFlow {
+    0% {
+        background-position: 0% 0%;
+    }
+    100% {
+        background-position: 100% 100%;
+    }
+}
+
+/* Replace the clock styles with the original timer styles */
+.timer-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 250px;
+}
+
+.timer-display {
+    font-size: 3.5rem;
+    font-weight: 300;
+    color: #2c4a3d;
+    margin: 1rem 0;
+    font-family: 'Cormorant Garamond', serif;
+    letter-spacing: 2px;
+}
+
+.timer-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.timer-preset {
+    background-color: #557c6c;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 25px;
+    cursor: pointer;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+.timer-preset:hover {
+    background-color: #2c4a3d;
+}
+
+.timer-control {
+    background-color: #557c6c;
+    color: white;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 25px;
+    cursor: pointer;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem;
+    transition: background-color 0.3s ease;
+}
+
+.timer-control:hover {
+    background-color: #2c4a3d;
+}
+
+/* Add these todo list styles */
+.todo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-height: 250px;
+}
+
+.todo-input-container {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.todo-input {
+    flex-grow: 1;
+    padding: 0.5rem 1rem;
+    border: 2px solid #557c6c;
+    border-radius: 25px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    background: rgba(255, 255, 255, 0.8);
+    color: #2c4a3d;
+}
+
+.todo-input:focus {
+    outline: none;
+    border-color: #2c4a3d;
+}
+
+.todo-add {
+    background-color: #557c6c;
+    color: white;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 25px;
+    cursor: pointer;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+.todo-add:hover {
+    background-color: #2c4a3d;
+}
+
+.todo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.todo-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 15px;
+    transition: opacity 0.3s ease;
+}
+
+.todo-item.completed {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
+.todo-checkbox {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #557c6c;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    background: white;
+}
+
+.todo-checkbox.checked::after {
+    content: '✓';
+    position: absolute;
+    color: #557c6c;
+    font-size: 14px;
+    left: 2px;
+    top: -2px;
+}
+
+.todo-text {
+    flex-grow: 1;
+    font-size: 1rem;
+    color: #2c4a3d;
+}
+
+/* Optional: Add a divider */
+.content-wrapper::before {
+    content: '';
+    display: block;
+    width: 50%;
+    height: 2px;
+    background: linear-gradient(to right, transparent, #557c6c, transparent);
+    margin: 0 auto;
+}
+
+/* Info button styles */
+.info-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    background-color: #557c6c;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+    z-index: 1000;
+}
+
+.info-button:hover {
+    background-color: #2c4a3d;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(5px);
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    position: relative;
+    font-family: 'Cormorant Garamond', serif;
+    color: #2c4a3d;
+    text-align: center;
+    line-height: 1.8;
+}
+
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #557c6c;
+    cursor: pointer;
+    padding: 5px;
+    transition: color 0.3s ease;
+}
+
+.close-button:hover {
+    color: #2c4a3d;
+}
+
+.modal-text {
+    font-size: 1.2rem;
+    margin: 1rem 0;
+}
