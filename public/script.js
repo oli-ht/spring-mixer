@@ -1,11 +1,11 @@
 // Add this at the top of your script.js file
 const API_URL = process.env.NODE_ENV === 'production' 
-    ? 'https://your-render-url.onrender.com/api'  // Replace with your actual Render URL
+    ? 'https://spring-mixer.onrender.com/api'
     : 'http://localhost:3000/api';
 
 // Spotify integration
 const clientId = config.clientId;
-const redirectUri = 'http://127.0.0.1:5501';
+const redirectUri = 'https://spring-mixer.onrender.com/';
 
 // Add this function after the API_URL constant and before the loadTodos function
 function createTodoItem(text, id) {
