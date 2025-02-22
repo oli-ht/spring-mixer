@@ -99,6 +99,39 @@
                         <!-- Tasks will be added here dynamically -->
                     </div>
                 </div>
+
+                <div class="productivity-card calendar-container">
+                    <p>Calendar</p>
+                    <div class="calendar-header">
+                        <button class="calendar-nav" id="prevMonth">&lt;</button>
+                        <span id="currentMonth">May 2024</span>
+                        <button class="calendar-nav" id="nextMonth">&gt;</button>
+                    </div>
+                    <div class="calendar-grid">
+                        <div class="weekday">Su</div>
+                        <div class="weekday">Mo</div>
+                        <div class="weekday">Tu</div>
+                        <div class="weekday">We</div>
+                        <div class="weekday">Th</div>
+                        <div class="weekday">Fr</div>
+                        <div class="weekday">Sa</div>
+                        <!-- Days will be added dynamically -->
+                    </div>
+                    <div id="eventModal" class="event-modal">
+                        <div class="event-modal-content">
+                            <h3>Events for <span id="modalDate"></span></h3>
+                            <div class="modal-events-container">
+                                <!-- Existing events will be listed here -->
+                            </div>
+                            <div class="new-event-form">
+                                <input type="text" id="eventTitle" placeholder="Add new event...">
+                                <input type="color" id="eventColor" value="#ffb6c1">
+                                <button id="saveEvent">Add</button>
+                            </div>
+                            <button id="cancelEvent" class="close-modal">Close</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="spotify-section">

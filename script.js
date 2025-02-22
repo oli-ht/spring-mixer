@@ -1,6 +1,101 @@
+// Add this at the top of your script.js file
+const API_URL = 'http://localhost:3000/api';
+
 // Spotify integration
 const clientId = config.clientId;
 const redirectUri = 'http://127.0.0.1:5501';
+
+// Add this function after the API_URL constant and before the loadTodos function
+function createTodoItem(text, id) {
+    const todoItem = document.createElement('div');
+    todoItem.className = 'todo-item';
+    
+    const checkbox = document.createElement('div');
+    checkbox.className = 'todo-checkbox';
+    
+    const todoText = document.createElement('span');
+    todoText.className = 'todo-text';
+    todoText.textContent = text;
+
+    todoItem.appendChild(checkbox);
+    todoItem.appendChild(todoText);
+
+    checkbox.addEventListener('click', async () => {
+        checkbox.classList.toggle('checked');
+        todoItem.classList.toggle('completed');
+        if (checkbox.classList.contains('checked')) {
+            setTimeout(async () => {
+                todoItem.style.opacity = '0';
+                await deleteTodo(id);
+                setTimeout(() => todoItem.remove(), 300);
+            }, 1000);
+        }
+    });
+
+    return todoItem;
+}
+
+// Add these functions at the top of your script.js file, after the API_URL constant
+async function loadTodos() {
+    try {
+        console.log('Fetching todos from server...');
+        const response = await fetch(`${API_URL}/todos`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const todos = await response.json();
+        console.log('Received todos:', todos);
+        
+        todoList.innerHTML = '';
+        todos.forEach(todo => {
+            todoList.appendChild(createTodoItem(todo.text, todo._id));
+        });
+    } catch (error) {
+        console.error('Error loading todos:', error);
+    }
+}
+
+async function addTodo() {
+    const text = todoInput.value.trim();
+    console.log('Adding todo:', text); // Debug log
+    
+    if (text) {
+        try {
+            const response = await fetch(`${API_URL}/todos`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const todo = await response.json();
+            console.log('Todo created:', todo); // Debug log
+            
+            const todoItem = createTodoItem(todo.text, todo._id);
+            todoList.appendChild(todoItem);
+            todoInput.value = '';
+        } catch (error) {
+            console.error('Error saving todo:', error);
+        }
+    }
+}
+
+async function deleteTodo(id) {
+    try {
+        await fetch(`${API_URL}/todos/${id}`, {
+            method: 'DELETE'
+        });
+    } catch (error) {
+        console.error('Error deleting todo:', error);
+    }
+}
 
 // Initialize Spotify Web Playback SDK
 window.onSpotifyWebPlaybackSDKReady = () => {
@@ -301,7 +396,235 @@ window.onSpotifyWebPlaybackSDKReady = () => {
     });
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+// Add these at the top of your script.js file, after the API_URL constant
+let todoInput, todoAdd, todoList;
+let calendar;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize todo list elements
+    todoInput = document.querySelector('.todo-input');
+    todoAdd = document.querySelector('.todo-add');
+    todoList = document.querySelector('.todo-list');
+
+    // Add event listeners for todo list
+    todoAdd.addEventListener('click', () => {
+        console.log('Add button clicked');
+        addTodo();
+    });
+
+    todoInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            addTodo();
+        }
+    });
+
+    // Initialize calendar
+    calendar = {
+        currentDate: new Date(),
+        events: {},
+        monthDisplay: document.getElementById('currentMonth'),
+        calendarGrid: document.querySelector('.calendar-grid'),
+        eventModal: document.getElementById('eventModal'),
+        selectedDate: null,
+
+        init() {
+            document.getElementById('prevMonth').addEventListener('click', () => this.changeMonth(-1));
+            document.getElementById('nextMonth').addEventListener('click', () => this.changeMonth(1));
+            document.getElementById('saveEvent').addEventListener('click', () => this.saveEvent());
+            document.getElementById('cancelEvent').addEventListener('click', () => this.closeModal());
+            document.getElementById('deleteEvent').addEventListener('click', () => this.deleteEvent());
+
+            // Remove the localStorage code and just render
+            this.render();
+        },
+
+        changeMonth(delta) {
+            this.currentDate.setMonth(this.currentDate.getMonth() + delta);
+            this.render();
+        },
+
+        formatDate(date) {
+            return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+        },
+
+        formatDateForDisplay(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('default', { 
+                month: 'long', 
+                day: 'numeric', 
+                year: 'numeric' 
+            });
+        },
+
+        render() {
+            const year = this.currentDate.getFullYear();
+            const month = this.currentDate.getMonth();
+            
+            this.monthDisplay.textContent = new Date(year, month, 1)
+                .toLocaleDateString('default', { month: 'long', year: 'numeric' });
+
+            // Clear existing days
+            const daysContainer = document.querySelector('.calendar-grid');
+            const weekdayElements = Array.from(daysContainer.querySelectorAll('.weekday'));
+            daysContainer.innerHTML = '';
+            weekdayElements.forEach(el => daysContainer.appendChild(el));
+
+            // Get first day of month and total days
+            const firstDay = new Date(year, month, 1).getDay();
+            const totalDays = new Date(year, month + 1, 0).getDate();
+            
+            // Add previous month's days
+            const prevMonthDays = new Date(year, month, 0).getDate();
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const day = document.createElement('div');
+                day.className = 'calendar-day other-month';
+                day.textContent = prevMonthDays - i;
+                daysContainer.appendChild(day);
+            }
+
+            // Add current month's days
+            for (let i = 1; i <= totalDays; i++) {
+                const day = document.createElement('div');
+                day.className = 'calendar-day';
+                
+                const dateStr = this.formatDate(new Date(year, month, i));
+                
+                // Create date number
+                const dateNumber = document.createElement('span');
+                dateNumber.textContent = i;
+                day.appendChild(dateNumber);
+
+                // Add events if they exist
+                if (this.events[dateStr] && this.events[dateStr].length > 0) {
+                    day.classList.add('has-events');
+                    
+                    const eventsContainer = document.createElement('div');
+                    eventsContainer.className = 'events-container';
+                    
+                    this.events[dateStr].forEach(event => {
+                        const eventPreview = document.createElement('div');
+                        eventPreview.className = 'event-preview';
+                        eventPreview.textContent = event.title;
+                        eventPreview.style.borderColor = event.color;
+                        eventsContainer.appendChild(eventPreview);
+                    });
+                    
+                    day.appendChild(eventsContainer);
+                }
+
+                day.addEventListener('click', () => {
+                    this.selectedDate = dateStr;
+                    this.openModal();
+                });
+                
+                daysContainer.appendChild(day);
+            }
+
+            // Add next month's days
+            const remainingCells = 42 - (firstDay + totalDays); // 42 = 6 rows × 7 days
+            for (let i = 1; i <= remainingCells; i++) {
+                const day = document.createElement('div');
+                day.className = 'calendar-day other-month';
+                day.textContent = i;
+                daysContainer.appendChild(day);
+            }
+        },
+
+        openModal() {
+            this.eventModal.classList.add('active');
+            
+            // Update modal title with selected date
+            const modalDate = document.getElementById('modalDate');
+            modalDate.textContent = this.formatDateForDisplay(this.selectedDate);
+            
+            // Show existing events
+            const eventsContainer = document.querySelector('.modal-events-container');
+            eventsContainer.innerHTML = '';
+            
+            if (this.events[this.selectedDate]) {
+                this.events[this.selectedDate].forEach((event, index) => {
+                    const eventElement = document.createElement('div');
+                    eventElement.className = 'modal-event';
+                    eventElement.innerHTML = `
+                        <span class="event-dot" style="background-color: ${event.color}"></span>
+                        <span class="event-title">${event.title}</span>
+                        <button class="delete-event" data-index="${index}">×</button>
+                    `;
+                    
+                    // Add delete handler
+                    eventElement.querySelector('.delete-event').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.deleteEvent(index);
+                    });
+                    
+                    eventsContainer.appendChild(eventElement);
+                });
+            }
+            
+            // Clear input fields for new event
+            document.getElementById('eventTitle').value = '';
+            document.getElementById('eventColor').value = '#ffb6c1';
+        },
+
+        saveEvent: async function() {
+            const title = document.getElementById('eventTitle').value.trim();
+            const color = document.getElementById('eventColor').value;
+
+            if (title && this.selectedDate) {
+                try {
+                    const response = await fetch(`${API_URL}/events`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            date: this.selectedDate,
+                            title,
+                            color
+                        })
+                    });
+                    const event = await response.json();
+                    await loadEvents(); // Reload events from server
+                    document.getElementById('eventTitle').value = '';
+                    this.openModal();
+                } catch (error) {
+                    console.error('Error saving event:', error);
+                }
+            }
+        },
+
+        deleteEvent: async function(index) {
+            if (this.selectedDate && this.events[this.selectedDate]) {
+                try {
+                    const eventId = this.events[this.selectedDate][index]._id;
+                    await fetch(`${API_URL}/events/${eventId}`, {
+                        method: 'DELETE'
+                    });
+                    await loadEvents(); // Reload events from server
+                    this.openModal();
+                } catch (error) {
+                    console.error('Error deleting event:', error);
+                }
+            }
+        },
+
+        closeModal() {
+            this.eventModal.classList.remove('active');
+            this.selectedDate = null;
+        }
+    };
+
+    // Load initial data first, then initialize calendar
+    try {
+        console.log('Loading initial data...');
+        await Promise.all([loadTodos(), loadEvents()]);
+        console.log('Initial data loaded successfully');
+        // Initialize calendar after loading events
+        calendar.init();
+    } catch (error) {
+        console.error('Error loading initial data:', error);
+    }
+
     const playPauseButtons = document.querySelectorAll('.play-pause');
     const volumeSliders = document.querySelectorAll('.volume');
 
@@ -438,55 +761,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     timerControl.addEventListener('click', startTimer);
 
-    // Todo List functionality
-    const todoInput = document.querySelector('.todo-input');
-    const todoAdd = document.querySelector('.todo-add');
-    const todoList = document.querySelector('.todo-list');
-
-    function createTodoItem(text) {
-        const todoItem = document.createElement('div');
-        todoItem.className = 'todo-item';
-        
-        const checkbox = document.createElement('div');
-        checkbox.className = 'todo-checkbox';
-        
-        const todoText = document.createElement('span');
-        todoText.className = 'todo-text';
-        todoText.textContent = text;
-
-        todoItem.appendChild(checkbox);
-        todoItem.appendChild(todoText);
-
-        checkbox.addEventListener('click', () => {
-            checkbox.classList.toggle('checked');
-            todoItem.classList.toggle('completed');
-            // Optional: Remove item after a delay when checked
-            if (checkbox.classList.contains('checked')) {
-                setTimeout(() => {
-                    todoItem.style.opacity = '0';
-                    setTimeout(() => todoItem.remove(), 300);
-                }, 1000);
-            }
-        });
-
-        return todoItem;
-    }
-
-    function addTodo() {
-        const text = todoInput.value.trim();
-        if (text) {
-            todoList.appendChild(createTodoItem(text));
-            todoInput.value = '';
-        }
-    }
-
-    todoAdd.addEventListener('click', addTodo);
-    todoInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            addTodo();
-        }
-    });
-
     // Modal functionality
     const infoButton = document.querySelector('.info-button');
     const modal = document.querySelector('.modal');
@@ -529,4 +803,32 @@ document.addEventListener('DOMContentLoaded', () => {
             peopleAudio.volume = 2.0; // Boost volume
         });
     }
-}); 
+});
+
+// Update loadEvents function to properly update the calendar
+async function loadEvents() {
+    try {
+        const response = await fetch(`${API_URL}/events`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const events = await response.json();
+        console.log('Loaded events:', events); // Debug log
+        
+        calendar.events = {};
+        events.forEach(event => {
+            if (!calendar.events[event.date]) {
+                calendar.events[event.date] = [];
+            }
+            calendar.events[event.date].push({
+                title: event.title,
+                color: event.color,
+                _id: event._id
+            });
+        });
+        
+        calendar.render();
+    } catch (error) {
+        console.error('Error loading events:', error);
+    }
+} 
