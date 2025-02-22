@@ -1,5 +1,5 @@
 // Spotify integration
-const clientId = '1fff9d9421dd4c29a4401f21fa6e02d3';
+const clientId = config.clientId;
 const redirectUri = 'http://127.0.0.1:5501';
 
 // Initialize Spotify Web Playback SDK
