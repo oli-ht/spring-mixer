@@ -641,3 +641,237 @@ h1 {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* Updated Audio visualizer styles */
+.audio-visualizer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    height: 40px;
+    width: 100%;
+    max-width: 400px;
+    margin: 1rem 0;
+    padding: 0 1rem;
+}
+
+.bar {
+    width: 3px;
+    background: #ffb6c1;
+    border-radius: 3px;
+    transition: height 0.2s ease;
+    height: 3px;
+}
+
+.bar:nth-child(odd) {
+    background: #ff99a3;
+}
+
+/* Animated bars */
+.audio-visualizer.playing .bar {
+    animation: bounce 1.2s ease infinite;
+    animation-delay: calc(var(--i) * 0.1s);
+}
+
+@keyframes bounce {
+    0%, 100% {
+        height: 3px;
+    }
+    50% {
+        height: 25px;
+    }
+}
+
+/* Different heights for variety */
+.audio-visualizer.playing .bar:nth-child(4n) {
+    animation-duration: 0.9s;
+}
+
+.audio-visualizer.playing .bar:nth-child(4n+1) {
+    animation-duration: 1.1s;
+}
+
+.audio-visualizer.playing .bar:nth-child(4n+2) {
+    animation-duration: 1.3s;
+}
+
+.audio-visualizer.playing .bar:nth-child(4n+3) {
+    animation-duration: 1s;
+}
+
+/* Add these new styles for the volume control */
+.spotify-controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 400px;
+    gap: 2rem;
+}
+
+.spotify-volume-container {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    min-width: 40px;
+    height: 100px;
+    position: relative;
+}
+
+.volume-icon {
+    width: 20px;
+    height: 20px;
+    fill: #2c4a3d;
+}
+
+.spotify-volume {
+    -webkit-appearance: none;
+    width: 100px;
+    height: 6px;
+    background: rgba(255, 182, 193, 0.3);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+    transform: rotate(-90deg) translateX(-50%);
+    transform-origin: left;
+    position: absolute;
+    left: 30px;
+    bottom: 40px;
+}
+
+/* Update volume icon based on level */
+.spotify-volume-container[data-level="mute"] .volume-icon path {
+    d: path("M12,4L9,7H5V17H9l3,3V4z M18.5,12L19,12L19,11.5L18.5,12z");
+}
+
+.spotify-volume-container[data-level="low"] .volume-icon path {
+    d: path("M12,4L9,7H5V17H9l3,3V4z M15,12c0-1.66-1-3-2.5-3.5v7C14,15,15,13.66,15,12z");
+}
+
+.spotify-volume-container[data-level="medium"] .volume-icon path {
+    d: path("M12,4L9,7H5V17H9l3,3V4z M18.5,12c0-1.77-1.02-3.29-2.5-4.03v8.05C17.48,15.29,18.5,13.77,18.5,12z");
+}
+
+.spotify-volume-container[data-level="high"] .volume-icon path {
+    d: path("M12,4L9,7H5V17H9l3,3V4z M18.5,12c0-1.77-1.02-3.29-2.5-4.03v8.05C17.48,15.29,18.5,13.77,18.5,12z M21.5,12c0-2.97-1.71-5.53-4.2-6.77v13.54C19.79,17.53,21.5,14.97,21.5,12z");
+}
+
+/* Keep the flower slider style */
+.spotify-volume::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 24px;
+    height: 24px;
+    background: #ffb6c1 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%23ffffff" d="M50,25 C55,10 65,15 65,25 C65,35 50,40 50,40 C50,40 35,35 35,25 C35,15 45,10 50,25 M50,75 C45,90 35,85 35,75 C35,65 50,60 50,60 C50,60 65,65 65,75 C65,85 55,90 50,75 M25,50 C10,45 15,35 25,35 C35,35 40,50 40,50 C40,50 35,65 25,65 C15,65 10,55 25,50 M75,50 C90,55 85,65 75,65 C65,65 60,50 60,50 C60,50 65,35 75,35 C85,35 90,45 75,50"/></svg>') center/contain no-repeat;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: -9px;
+}
+
+.spotify-volume::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: #ffb6c1 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%23ffffff" d="M50,25 C55,10 65,15 65,25 C65,35 50,40 50,40 C50,40 35,35 35,25 C35,15 45,10 50,25 M50,75 C45,90 35,85 35,75 C35,65 50,60 50,60 C50,60 65,65 65,75 C65,85 55,90 50,75 M25,50 C10,45 15,35 25,35 C35,35 40,50 40,50 C40,50 35,65 25,65 C15,65 10,55 25,50 M75,50 C90,55 85,65 75,65 C65,65 60,50 60,50 C60,50 65,35 75,35 C85,35 90,45 75,50"/></svg>') center/contain no-repeat;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: -9px;
+}
+
+.spotify-volume::-webkit-slider-thumb:hover,
+.spotify-volume::-moz-range-thumb:hover {
+    transform: scale(1.2) rotate(45deg);
+    background-color: #ff99a3;
+}
+
+/* Update album art styles */
+.album-art-container {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    perspective: 1000px;
+}
+
+.vinyl-disc {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #111, #333);
+    z-index: 1;
+    transform: translateZ(-10px);
+}
+
+.vinyl-disc::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 15px;
+    height: 15px;
+    background: #ffb6c1;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
+.album-art {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+    z-index: 2;
+    transition: transform 0.5s ease;
+}
+
+.album-art.spinning {
+    animation: spin 20s linear infinite;
+}
+
+.album-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Add hover effect */
+.album-art-container:hover .album-art {
+    transform: translateX(20px);
+}
+
+.album-art-container:hover .vinyl-disc {
+    transform: translateX(-10px) translateZ(-10px);
+}
+
+/* Update the transition properties */
+.album-art,
+.vinyl-disc {
+    transition: all 0.3s ease;
+}
+
+/* Add this to your styles to prevent dragging */
+input[type="range"] {
+    -webkit-user-drag: none;
+    user-drag: none;
+}
+
+.volume::-webkit-slider-thumb,
+.spotify-volume::-webkit-slider-thumb,
+.spotify-progress::-webkit-slider-thumb {
+    -webkit-user-drag: none;
+    user-drag: none;
+}
