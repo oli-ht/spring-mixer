@@ -429,3 +429,215 @@ h1 {
     font-size: 1.2rem;
     margin: 1rem 0;
 }
+
+/* Spotify section styles */
+.spotify-section {
+    width: 100%;
+    max-width: 900px;
+    margin: 2rem auto 0;
+}
+
+.spotify-card {
+    background-color: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(5px);
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.spotify-card p {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    color: #2c4a3d;
+}
+
+.spotify-button {
+    background-color: #ffb6c1;
+    color: #2c4a3d;
+    border: none;
+    padding: 0.8rem 2rem;
+    border-radius: 25px;
+    cursor: pointer;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem;
+    transition: background-color 0.3s ease;
+    margin-bottom: 1rem;
+}
+
+.spotify-button:hover {
+    background-color: #ff99a3;
+}
+
+.spotify-player-container {
+    min-height: 80px;
+    margin-top: 1rem;
+}
+
+/* Update the Spotify controls styles */
+.spotify-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.spotify-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.spotify-control-btn {
+    background-color: #ffb6c1;
+    color: #2c4a3d;
+    border: none;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.spotify-control-btn:hover {
+    background-color: #ff99a3;
+    transform: scale(1.05);
+}
+
+.spotify-progress-container {
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.spotify-progress {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    background: rgba(255, 182, 193, 0.3);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+.spotify-progress::-webkit-slider-thumb,
+.volume::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 24px;
+    height: 24px;
+    background: #ffb6c1 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%23ffffff" d="M50,25 C55,10 65,15 65,25 C65,35 50,40 50,40 C50,40 35,35 35,25 C35,15 45,10 50,25 M50,75 C45,90 35,85 35,75 C35,65 50,60 50,60 C50,60 65,65 65,75 C65,85 55,90 50,75 M25,50 C10,45 15,35 25,35 C35,35 40,50 40,50 C40,50 35,65 25,65 C15,65 10,55 25,50 M75,50 C90,55 85,65 75,65 C65,65 60,50 60,50 C60,50 65,35 75,35 C85,35 90,45 75,50"/></svg>') center/contain no-repeat;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: -9px; /* Center the thumb on the track */
+}
+
+.spotify-progress::-webkit-slider-thumb:hover,
+.volume::-webkit-slider-thumb:hover {
+    transform: scale(1.2) rotate(45deg);
+    background-color: #ff99a3;
+}
+
+/* For Firefox */
+.spotify-progress::-moz-range-thumb,
+.volume::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    background: #ffb6c1 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%23ffffff" d="M50,25 C55,10 65,15 65,25 C65,35 50,40 50,40 C50,40 35,35 35,25 C35,15 45,10 50,25 M50,75 C45,90 35,85 35,75 C35,65 50,60 50,60 C50,60 65,65 65,75 C65,85 55,90 50,75 M25,50 C10,45 15,35 25,35 C35,35 40,50 40,50 C40,50 35,65 25,65 C15,65 10,55 25,50 M75,50 C90,55 85,65 75,65 C65,65 60,50 60,50 C60,50 65,35 75,35 C85,35 90,45 75,50"/></svg>') center/contain no-repeat;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: -9px; /* Center the thumb on the track */
+}
+
+.spotify-progress::-moz-range-thumb:hover,
+.volume::-moz-range-thumb:hover {
+    transform: scale(1.2) rotate(45deg);
+    background-color: #ff99a3;
+}
+
+/* Update the track color for both slider types */
+.spotify-progress::-webkit-slider-runnable-track,
+.volume::-webkit-slider-runnable-track {
+    background: rgba(255, 182, 193, 0.3);
+    border-radius: 3px;
+    height: 6px;
+}
+
+.spotify-progress::-moz-range-track,
+.volume::-moz-range-track {
+    background: rgba(255, 182, 193, 0.3);
+    border-radius: 3px;
+    height: 6px;
+}
+
+/* Update time text color to match theme */
+.spotify-time {
+    color: #ff99a3;
+    font-weight: 500;
+}
+
+/* Add these new styles for the now playing section */
+.spotify-now-playing {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 1rem;
+    background: rgba(255, 255, 255, 0.3);
+    padding: 1rem;
+    border-radius: 15px;
+    backdrop-filter: blur(5px);
+}
+
+.album-art {
+    width: 80px;
+    height: 80px;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.album-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.track-info {
+    flex: 1;
+    text-align: left;
+    overflow: hidden;
+}
+
+.track-name {
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: #2c4a3d;
+    margin-bottom: 0.3rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.artist-name {
+    font-size: 1rem;
+    color: #557c6c;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

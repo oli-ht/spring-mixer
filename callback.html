@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spotify Callback</title>
+</head>
+<body>
+    <p>Connecting to Spotify...</p>
+    <script>
+        // Get the token from URL and redirect back to main page
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+            window.opener.postMessage(hash, '*');
+        }
+        window.close();
+    </script>
+</body>
+</html> 
