@@ -1,730 +1,715 @@
-// Add this at the top of your script.js file
-const API_URL = process.env.NODE_ENV === 'production' 
-    ? 'https://spring-mixer.onrender.com/api'
-    : 'http://localhost:3000/api';
+// API URL for local development
+const API_URL = 'http://localhost:3000/api';
 
 // Spotify integration
-const clientId = config.clientId;
-const redirectUri = 'https://spring-mixer.onrender.com/';
+const clientId = config.SPOTIFY_CLIENT_ID;
+console.log('Config Object:', config);
+console.log('Client ID:', clientId);
+const redirectUri = 'http://localhost:5501';
 
-// Add this function after the API_URL constant and before the loadTodos function
-function createTodoItem(text, id) {
-    const todoItem = document.createElement('div');
-    todoItem.className = 'todo-item';
-    
-    const checkbox = document.createElement('div');
-    checkbox.className = 'todo-checkbox';
-    
-    const todoText = document.createElement('span');
-    todoText.className = 'todo-text';
-    todoText.textContent = text;
+// Add this code near the top of your script.js file, right after your other constants
+let spotifyToken = null;
+let spotifyPlayer = null;
 
-    todoItem.appendChild(checkbox);
-    todoItem.appendChild(todoText);
+// Calendar functionality - Move this to the top
+const calendar = {
+    currentDate: new Date(),
+    events: {},
+    init() {
+        const prevMonth = document.getElementById('prevMonth');
+        const nextMonth = document.getElementById('nextMonth');
+        const saveEvent = document.getElementById('saveEvent');
+        const cancelEvent = document.getElementById('cancelEvent');
+        const calendarGrid = document.querySelector('.calendar-grid');
 
-    checkbox.addEventListener('click', async () => {
-        checkbox.classList.toggle('checked');
-        todoItem.classList.toggle('completed');
-        if (checkbox.classList.contains('checked')) {
-            setTimeout(async () => {
-                todoItem.style.opacity = '0';
-                await deleteTodo(id);
-                setTimeout(() => todoItem.remove(), 300);
-            }, 1000);
+        if (prevMonth) {
+            prevMonth.addEventListener('click', debounce(() => this.changeMonth(-1), 300));
         }
-    });
+        if (nextMonth) {
+            nextMonth.addEventListener('click', debounce(() => this.changeMonth(1), 300));
+        }
+        if (saveEvent) {
+            saveEvent.addEventListener('click', () => this.saveEvent());
+        }
+        if (cancelEvent) {
+            cancelEvent.addEventListener('click', () => this.closeModal());
+        }
+        if (calendarGrid) {
+            calendarGrid.addEventListener('click', (e) => {
+                const dayElement = e.target.closest('.day:not(.empty)');
+                if (dayElement) {
+                    this.openModal(dayElement.dataset.date);
+                }
+            });
+        }
 
-    return todoItem;
-}
-
-// Add these functions at the top of your script.js file, after the API_URL constant
-async function loadTodos() {
-    try {
-        console.log('Fetching todos from server...');
-        const response = await fetch(`${API_URL}/todos`);
+        this.render();
+    },
+    render() {
+        const monthDisplay = document.getElementById('currentMonth');
+        const calendarGrid = document.querySelector('.calendar-grid');
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        // Clear existing days (except weekday headers)
+        const days = calendarGrid.querySelectorAll('.day');
+        days.forEach(day => day.remove());
+
+        // Set month display
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                          'July', 'August', 'September', 'October', 'November', 'December'];
+        monthDisplay.textContent = `${monthNames[this.currentDate.getMonth()]} ${this.currentDate.getFullYear()}`;
+
+        // Add days
+        const firstDay = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth(), 1);
+        const lastDay = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() + 1, 0);
+
+        // Add empty cells for days before the first of the month
+        for (let i = 0; i < firstDay.getDay(); i++) {
+            const emptyDay = document.createElement('div');
+            emptyDay.className = 'day empty';
+            calendarGrid.appendChild(emptyDay);
+        }
+
+        // Add days of the month
+        for (let date = 1; date <= lastDay.getDate(); date++) {
+            const dayElement = document.createElement('div');
+            dayElement.className = 'day';
+            
+            // Create date number as a separate element for better positioning
+            const dateNumber = document.createElement('span');
+            dateNumber.className = 'day-number';
+            dateNumber.textContent = date;
+            dayElement.appendChild(dateNumber);
+            
+            // Add date data attribute
+            const dateString = `${this.currentDate.getFullYear()}-${(this.currentDate.getMonth() + 1).toString().padStart(2, '0')}-${date.toString().padStart(2, '0')}`;
+            dayElement.dataset.date = dateString;
+
+            // Create events container (add it always for consistent layout)
+            const eventsPreviewContainer = document.createElement('div');
+            eventsPreviewContainer.className = 'event-previews';
+            dayElement.appendChild(eventsPreviewContainer);
+
+            // Check for events on this date
+            if (this.events[dateString]) {
+                // Sort events by color for a nicer display
+                const sortedEvents = [...this.events[dateString]].sort((a, b) => {
+                    return a.color.localeCompare(b.color);
+                });
+                
+                // Add each event as a preview, limit to 3 visible events
+                const maxVisibleEvents = 3;
+                const hasMoreEvents = sortedEvents.length > maxVisibleEvents;
+                
+                sortedEvents.slice(0, maxVisibleEvents).forEach(event => {
+                    const eventPreview = document.createElement('div');
+                    eventPreview.className = 'event-preview';
+                    eventPreview.style.backgroundColor = event.color;
+                    eventPreview.title = event.title; // Show title on hover
+                    
+                    // Add a short preview of the title
+                    const shortTitle = event.title.length > 10 ? 
+                                      event.title.substring(0, 8) + '...' : 
+                                      event.title;
+                    eventPreview.textContent = shortTitle;
+                    
+                    eventsPreviewContainer.appendChild(eventPreview);
+                });
+                
+                // If there are more events than we can show, add a "+X more" indicator
+                if (hasMoreEvents) {
+                    const moreEventsIndicator = document.createElement('div');
+                    moreEventsIndicator.className = 'event-preview more-events';
+                    moreEventsIndicator.textContent = `+${sortedEvents.length - maxVisibleEvents} more`;
+                    moreEventsIndicator.style.backgroundColor = '#888';
+                    eventsPreviewContainer.appendChild(moreEventsIndicator);
+                }
+            }
+            
+            calendarGrid.appendChild(dayElement);
+        }
+    },
+    changeMonth(delta) {
+        this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() + delta, 1);
+        this.render();
+    },
+    openModal(dateString) {
+        const eventModal = document.getElementById('eventModal');
+        const modalDate = document.getElementById('modalDate');
+        const modalEventsContainer = document.querySelector('.modal-events-container');
+        
+        // Clear previous events
+        modalEventsContainer.innerHTML = '';
+        
+        // Set the date
+        modalDate.textContent = dateString;
+        
+        // Add existing events
+        if (this.events[dateString]) {
+            this.events[dateString].forEach(event => {
+                const eventElement = document.createElement('div');
+                eventElement.className = 'modal-event';
+                eventElement.innerHTML = `
+                    <div class="event-color" style="background-color: ${event.color}"></div>
+                    <div class="event-title">${event.title}</div>
+                    <button class="delete-event" data-id="${event._id}">×</button>
+                `;
+                modalEventsContainer.appendChild(eventElement);
+                
+                // Add event listener to delete button
+                const deleteButton = eventElement.querySelector('.delete-event');
+                deleteButton.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    await this.deleteEvent(event._id);
+                    modalEventsContainer.removeChild(eventElement);
+                });
+            });
         }
         
-        const todos = await response.json();
-        console.log('Received todos:', todos);
-        
-        todoList.innerHTML = '';
-        todos.forEach(todo => {
-            todoList.appendChild(createTodoItem(todo.text, todo._id));
-        });
-    } catch (error) {
-        console.error('Error loading todos:', error);
-    }
-}
+        // Show the modal
+        eventModal.classList.add('active');
+    },
+    closeModal() {
+        const eventModal = document.getElementById('eventModal');
+        eventModal.classList.remove('active');
+    },
+    async saveEvent() {
+        const date = document.getElementById('modalDate').textContent;
+        const title = document.getElementById('eventTitle').value;
+        const color = document.getElementById('eventColor').value;
 
-async function addTodo() {
-    const text = todoInput.value.trim();
-    console.log('Adding todo:', text); // Debug log
-    
-    if (text) {
+        if (title.trim()) {
+            try {
+                const response = await fetch(`${API_URL}/events`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ date, title, color })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                await loadEvents();
+                document.getElementById('eventTitle').value = '';
+                this.closeModal();
+            } catch (error) {
+                console.error('Error saving event:', error);
+            }
+        }
+    },
+    async deleteEvent(id) {
         try {
-            const response = await fetch(`${API_URL}/todos`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ text })
+            const response = await fetch(`${API_URL}/events/${id}`, {
+                method: 'DELETE'
             });
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            const todo = await response.json();
-            console.log('Todo created:', todo); // Debug log
+            // Remove from events array
+            for (const date in this.events) {
+                this.events[date] = this.events[date].filter(e => e._id !== id);
+            }
             
-            const todoItem = createTodoItem(todo.text, todo._id);
-            todoList.appendChild(todoItem);
-            todoInput.value = '';
+            // Re-render calendar if no events left
+            if (this.events[date].length === 0) {
+                delete this.events[date];
+                this.render();
+            }
         } catch (error) {
-            console.error('Error saving todo:', error);
+            console.error('Error deleting event:', error);
+        }
+    }
+};
+
+// Update the loadEvents function to ensure it's working properly
+async function loadEvents() {
+    try {
+        console.log('Loading events from API...');
+        const response = await fetch(`${API_URL}/events`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const events = await response.json();
+        console.log('Received events:', events); // Add logging
+        
+        // Clear existing events
+        calendar.events = {};
+        
+        // Process and add events
+        events.forEach(event => {
+            if (!calendar.events[event.date]) {
+                calendar.events[event.date] = [];
+            }
+            calendar.events[event.date].push({
+                title: event.title,
+                color: event.color,
+                _id: event._id
+            });
+        });
+        
+        console.log('Processed events:', calendar.events); // Add logging
+        calendar.render();
+    } catch (error) {
+        console.error('Error loading events:', error);
+    }
+}
+
+// Add this function to handle the access token
+function handleSpotifyCallback() {
+    if (window.location.hash) {
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        spotifyToken = params.get('access_token');
+        
+        if (spotifyToken) {
+            console.log('Spotify token received!');
+            
+            // Remove the access token from the URL
+            window.history.replaceState({}, document.title, '/');
+            
+            // Initialize Spotify player
+            initializeSpotifyPlayer(spotifyToken);
+            
+            // Update UI to show connected state
+            const spotifyConnect = document.getElementById('spotify-connect');
+            if (spotifyConnect) {
+                spotifyConnect.textContent = 'Connected to Spotify';
+                spotifyConnect.style.backgroundColor = '#1DB954'; // Spotify green
+            }
         }
     }
 }
 
-async function deleteTodo(id) {
-    try {
-        await fetch(`${API_URL}/todos/${id}`, {
-            method: 'DELETE'
-        });
-    } catch (error) {
-        console.error('Error deleting todo:', error);
-    }
-}
+// Add this function to initialize the Spotify Web Playback SDK
+function initializeSpotifyPlayer(token) {
+    // Load the Spotify Web Playback SDK script
+    const script = document.createElement('script');
+    script.src = 'https://sdk.scdn.co/spotify-player.js';
+    script.async = true;
+    document.body.appendChild(script);
 
-// Initialize Spotify Web Playback SDK
-window.onSpotifyWebPlaybackSDKReady = () => {
-    const spotifyConnect = document.getElementById('spotify-connect');
-    const playerContainer = document.getElementById('spotify-player');
-    
-    // Check if we have a token in the URL (after redirect)
-    const hash = window.location.hash.substring(1);
-    const params = new URLSearchParams(hash);
-    const accessToken = params.get('access_token');
-
-    if (accessToken) {
-        // Create Spotify Player
-        const player = new Spotify.Player({
-            name: 'Spring Ambience Web Player',
-            getOAuthToken: cb => { cb(accessToken); },
+    window.onSpotifyWebPlaybackSDKReady = () => {
+        spotifyPlayer = new Spotify.Player({
+            name: 'Spring Ambience Player',
+            getOAuthToken: cb => { cb(token); },
             volume: 0.5
         });
 
-        // Connect to the player
-        player.connect().then(success => {
-            if (success) {
-                spotifyConnect.textContent = 'Connected to Spotify';
-                spotifyConnect.disabled = true;
+        // Error handling
+        spotifyPlayer.addListener('initialization_error', ({ message }) => {
+            console.error('Failed to initialize Spotify player:', message);
+        });
 
-                // Create player controls
-                const controls = document.createElement('div');
-                controls.className = 'spotify-controls';
-                controls.innerHTML = `
-                    <div class="spotify-now-playing">
-                        <div class="album-art-container">
-                            <div class="vinyl-disc"></div>
-                            <div class="album-art">
-                                <img src="" alt="Album Art" id="album-art">
-                            </div>
-                        </div>
-                        <div class="track-info">
-                            <div class="track-name"></div>
-                            <div class="artist-name"></div>
-                        </div>
-                    </div>
-                    <div class="audio-visualizer">
-                        ${Array(16).fill('').map((_, i) => `<div class="bar" style="--i: ${i}"></div>`).join('')}
-                    </div>
-                    <div class="spotify-progress-container">
-                        <input type="range" class="spotify-progress" value="0" min="0" max="100">
-                        <div class="spotify-time">
-                            <span class="time-current">0:00</span>
-                            <span class="time-total">0:00</span>
-                        </div>
-                    </div>
-                    <div class="spotify-controls-row">
-                        <div class="spotify-buttons">
-                            <button id="spotify-prev" class="spotify-control-btn">⏮</button>
-                            <button id="spotify-play" class="spotify-control-btn">▶</button>
-                            <button id="spotify-next" class="spotify-control-btn">⏭</button>
-                        </div>
-                        <div class="spotify-volume-container">
-                            <svg class="volume-icon" viewBox="0 0 24 24">
-                                <path d="M12,4L9,7H5V17H9l3,3V4z M18.5,12c0-1.77-1.02-3.29-2.5-4.03v8.05C17.48,15.29,18.5,13.77,18.5,12z"/>
-                            </svg>
-                            <input type="range" class="spotify-volume" value="50" min="0" max="100" orient="vertical">
+        spotifyPlayer.addListener('authentication_error', ({ message }) => {
+            console.error('Failed to authenticate with Spotify:', message);
+        });
+
+        spotifyPlayer.addListener('account_error', ({ message }) => {
+            console.error('Spotify account error:', message);
+        });
+
+        spotifyPlayer.addListener('playback_error', ({ message }) => {
+            console.error('Spotify playback error:', message);
+        });
+
+        // When the player is ready, add the vinyl player UI
+        spotifyPlayer.addListener('ready', ({ device_id }) => {
+            console.log('Spotify player ready with device ID:', device_id);
+            
+            // Create vinyl player UI with album cover and progress bar
+            const spotifyVinyl = document.createElement('div');
+            spotifyVinyl.className = 'spotify-vinyl-player';
+            spotifyVinyl.innerHTML = `
+                <div class="vinyl-container">
+                    <div class="record-outer">
+                        <div class="album-cover"></div>
+                        <div class="record-inner">
+                            <div class="record-center"></div>
                         </div>
                     </div>
-                `;
-                playerContainer.appendChild(controls);
-
-                // Add these variables after getting the button elements
-                const progressSlider = controls.querySelector('.spotify-progress');
-                const timeCurrentSpan = controls.querySelector('.time-current');
-                const timeTotalSpan = controls.querySelector('.time-total');
-
-                // Add after the other control variables
-                const volumeSlider = controls.querySelector('.spotify-volume');
-
-                // Add this function to format time
-                function formatTime(ms) {
-                    const seconds = Math.floor(ms / 1000);
-                    const minutes = Math.floor(seconds / 60);
-                    const remainingSeconds = seconds % 60;
-                    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-                }
-
-                // Add player controls functionality
-                const playButton = document.getElementById('spotify-play');
-                const prevButton = document.getElementById('spotify-prev');
-                const nextButton = document.getElementById('spotify-next');
-
-                // Add this variable at the top of your success block
-                let progressInterval;
-
-                // Ready
-                player.addListener('ready', ({ device_id }) => {
-                    console.log('Ready with Device ID', device_id);
-                    
-                    // Transfer playback
-                    fetch('https://api.spotify.com/v1/me/player', {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${accessToken}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            device_ids: [device_id],
-                            play: false
-                        })
-                    }).catch(error => {
-                        console.error('Transfer playback error:', error);
-                        // Show instructions
-                        playerContainer.innerHTML = `
-                            <div style="text-align: center; padding: 2rem;">
-                                <p style="color: #2c4a3d; margin-bottom: 1rem; font-size: 1.1rem;">
-                                    To use the player:
-                                    <br><br>
-                                    1. Open Spotify on your phone or computer
-                                    <br>
-                                    2. Play any song
-                                    <br>
-                                    3. Click the button below to try again
-                                </p>
-                                <button class="spotify-button" onclick="location.reload()">
-                                    Try Again
-                                </button>
-                            </div>
-                        `;
-                    });
-                });
-
-                // Not Ready
-                player.addListener('not_ready', ({ device_id }) => {
-                    console.log('Device ID has gone offline', device_id);
-                });
-
-                // Add event listeners to buttons
-                playButton.addEventListener('click', () => {
-                    player.getCurrentState().then(state => {
-                        if (!state) {
-                            console.error('User is not playing music through the Web Playback SDK');
-                            return;
-                        }
-                        player.togglePlay();
-                    });
-                });
-
-                prevButton.addEventListener('click', () => {
-                    player.previousTrack();
-                });
-
-                nextButton.addEventListener('click', () => {
-                    player.nextTrack();
-                });
-
-                // Update play button state
-                player.addListener('player_state_changed', state => {
-                    if (!state) {
-                        console.error('User is not playing music through the Web Playback SDK');
-                        return;
-                    }
-                    
-                    console.log('Player State:', state);
-                    playButton.textContent = state.paused ? '▶' : '⏸';
-                    
-                    // Clear any existing interval
-                    if (progressInterval) {
-                        clearInterval(progressInterval);
-                    }
-
-                    // Update track info
-                    const trackName = document.querySelector('.track-name');
-                    const artistName = document.querySelector('.artist-name');
-                    const albumArt = document.getElementById('album-art');
-                    
-                    if (state.track_window.current_track) {
-                        const track = state.track_window.current_track;
-                        trackName.textContent = track.name;
-                        artistName.textContent = track.artists.map(artist => artist.name).join(', ');
-                        albumArt.src = track.album.images[0].url;
-                    }
-                    
-                    // Initial progress update
-                    const { position, duration } = state;
-                    progressSlider.value = (position / duration) * 100;
-                    timeCurrentSpan.textContent = formatTime(position);
-                    timeTotalSpan.textContent = formatTime(duration);
-
-                    // Set up continuous progress updates if not paused
-                    if (!state.paused) {
-                        let currentPosition = position;
-                        progressInterval = setInterval(() => {
-                            currentPosition += 1000; // Add 1 second
-                            if (currentPosition <= duration) {
-                                progressSlider.value = (currentPosition / duration) * 100;
-                                timeCurrentSpan.textContent = formatTime(currentPosition);
-                            } else {
-                                clearInterval(progressInterval);
-                            }
-                        }, 1000);
-                    }
-
-                    // Update visualizer animation state
-                    const visualizer = document.querySelector('.audio-visualizer');
-                    if (state.paused) {
-                        visualizer.classList.remove('playing');
-                    } else {
-                        visualizer.classList.add('playing');
-                    }
-
-                    // Update album art spinning
-                    const albumArtDiv = document.querySelector('.album-art');
-                    if (state.paused) {
-                        albumArtDiv.classList.remove('spinning');
-                    } else {
-                        albumArtDiv.classList.add('spinning');
-                    }
-                });
-
-                // Add progress slider functionality
-                progressSlider.addEventListener('change', () => {
-                    player.getCurrentState().then(state => {
-                        if (state) {
-                            const position = (progressSlider.value / 100) * state.duration;
-                            player.seek(position);
-                        }
-                    });
-                });
-
-                // Add volume control functionality
-                volumeSlider.addEventListener('input', () => {
-                    const volume = volumeSlider.value / 100;
-                    player.setVolume(volume);
-                    
-                    const volumeContainer = controls.querySelector('.spotify-volume-container');
-                    if (volume === 0) {
-                        volumeContainer.setAttribute('data-level', 'mute');
-                    } else if (volume < 0.3) {
-                        volumeContainer.setAttribute('data-level', 'low');
-                    } else if (volume < 0.7) {
-                        volumeContainer.setAttribute('data-level', 'medium');
-                    } else {
-                        volumeContainer.setAttribute('data-level', 'high');
-                    }
-                });
-
-                // Update volume icon based on level
-                volumeSlider.addEventListener('change', () => {
-                    const volume = volumeSlider.value / 100;
-                    const volumeIcon = controls.querySelector('.volume-icon');
-                    if (volume === 0) {
-                        volumeIcon.classList.remove('high');
-                        volumeIcon.classList.add('low');
-                    } else if (volume < 0.3) {
-                        volumeIcon.classList.remove('high');
-                        volumeIcon.classList.add('medium');
-                    } else if (volume < 0.7) {
-                        volumeIcon.classList.remove('low');
-                        volumeIcon.classList.add('medium');
-                    } else {
-                        volumeIcon.classList.remove('low');
-                        volumeIcon.classList.add('high');
-                    }
-                });
-
-                // Clean up interval when component unmounts or on errors
-                player.addListener('initialization_error', () => clearInterval(progressInterval));
-                player.addListener('authentication_error', () => clearInterval(progressInterval));
-                player.addListener('account_error', () => clearInterval(progressInterval));
-                player.addListener('playback_error', () => clearInterval(progressInterval));
-            }
-        }).catch(error => {
-            console.error('Player connect error:', error);
-            playerContainer.innerHTML = `
-                <div style="text-align: center; padding: 2rem;">
-                    <p style="color: #2c4a3d; margin-bottom: 1rem; font-size: 1.1rem;">
-                        To use the player:
-                        <br><br>
-                        1. Make sure you have Spotify Premium
-                        <br>
-                        2. Open Spotify on another device
-                        <br>
-                        3. Play any song
-                        <br>
-                        4. Click the button below
-                    </p>
-                    <button class="spotify-button" onclick="location.reload()">
-                        Try Again
-                    </button>
+                    <div class="album-info">
+                        <div class="now-playing-title">Not Playing</div>
+                        <div class="now-playing-artist">Connect to Spotify</div>
+                    </div>
+                    <div class="progress-container">
+                        <span class="current-time">0:00</span>
+                        <input type="range" class="progress-slider" min="0" max="100" value="0">
+                        <span class="total-time">0:00</span>
+                    </div>
+                    <div class="vinyl-controls">
+                        <button id="vinyl-prev" class="vinyl-button"><i class="fas fa-step-backward"></i></button>
+                        <button id="vinyl-play" class="vinyl-button"><i class="fas fa-play"></i></button>
+                        <button id="vinyl-next" class="vinyl-button"><i class="fas fa-step-forward"></i></button>
+                    </div>
                 </div>
             `;
+            
+            // Insert vinyl player after the connect button
+            const spotifyConnect = document.getElementById('spotify-connect');
+            if (spotifyConnect && spotifyConnect.parentNode) {
+                spotifyConnect.parentNode.insertBefore(spotifyVinyl, spotifyConnect.nextSibling);
+            } else {
+                // Fallback to the audio players container
+                const spotifyContainer = document.querySelector('.spotify-container') || document.querySelector('.audio-players');
+                if (spotifyContainer) {
+                    spotifyContainer.appendChild(spotifyVinyl);
+                }
+            }
+            
+            // Add event listeners
+            document.getElementById('vinyl-play').addEventListener('click', () => {
+                const playButton = document.getElementById('vinyl-play');
+                const recordOuter = document.querySelector('.record-outer');
+                
+                // Toggle play/pause
+                if (playButton.querySelector('i').classList.contains('fa-play')) {
+                    // Resume playback if already started before
+                    spotifyPlayer.getCurrentState().then(state => {
+                        if (state) {
+                            // If there's a state, resume playback
+                            spotifyPlayer.resume();
+                        } else {
+                            // If no state (first time), start playback
+                            startPlayback(token, device_id);
+                        }
+                    });
+                    
+                    playButton.querySelector('i').classList.replace('fa-play', 'fa-pause');
+                    recordOuter.classList.add('spinning');
+                } else {
+                    // Pause playback
+                    spotifyPlayer.pause();
+                    playButton.querySelector('i').classList.replace('fa-pause', 'fa-play');
+                    recordOuter.classList.remove('spinning');
+                }
+            });
+            
+            document.getElementById('vinyl-prev').addEventListener('click', () => {
+                spotifyPlayer.previousTrack();
+            });
+            
+            document.getElementById('vinyl-next').addEventListener('click', () => {
+                spotifyPlayer.nextTrack();
+            });
+            
+            // Add progress slider functionality
+            const progressSlider = document.querySelector('.progress-slider');
+            if (progressSlider) {
+                progressSlider.addEventListener('input', () => {
+                    // Update time display while sliding
+                    const currentTimeElement = document.querySelector('.current-time');
+                    if (currentTimeElement) {
+                        const position = (progressSlider.value / 100) * trackDuration;
+                        currentTimeElement.textContent = formatTime(position);
+                    }
+                });
+                
+                progressSlider.addEventListener('change', () => {
+                    // Seek to position when slider is released
+                    spotifyPlayer.getCurrentState().then(state => {
+                        if (state) {
+                            const position = Math.floor((progressSlider.value / 100) * state.duration);
+                            spotifyPlayer.seek(position);
+                        }
+                    });
+                });
+            }
+            
+            // Start playback when ready
+            setTimeout(() => {
+                startPlayback(token, device_id);
+            }, 1000);
         });
-    } else {
-        console.log('No access token found in URL');
+
+        // Track variables to store duration and update progress
+        let trackDuration = 0;
+        let progressInterval = null;
+        
+        // Update player state when changed
+        spotifyPlayer.addListener('player_state_changed', state => {
+            if (!state) return;
+            
+            const currentTrack = state.track_window.current_track;
+            updateNowPlaying(currentTrack);
+            
+            // Update track duration
+            trackDuration = state.duration;
+            
+            // Update progress display
+            updateProgressDisplay(state);
+            
+            // Setup/clear interval for progress updates
+            clearInterval(progressInterval);
+            if (!state.paused) {
+                progressInterval = setInterval(() => {
+                    spotifyPlayer.getCurrentState().then(state => {
+                        if (state && !state.paused) {
+                            updateProgressDisplay(state);
+                        }
+                    });
+                }, 3000);
+            }
+            
+            const playButton = document.getElementById('vinyl-play');
+            const recordOuter = document.querySelector('.record-outer');
+            
+            if (state.paused) {
+                playButton.querySelector('i').classList.replace('fa-pause', 'fa-play');
+                recordOuter.classList.remove('spinning');
+            } else {
+                playButton.querySelector('i').classList.replace('fa-play', 'fa-pause');
+                recordOuter.classList.add('spinning');
+            }
+        });
+
+        // Connect to Spotify
+        spotifyPlayer.connect();
+    };
+}
+
+// Helper function to update progress display
+function updateProgressDisplay(state) {
+    const progressSlider = document.querySelector('.progress-slider');
+    const currentTimeElement = document.querySelector('.current-time');
+    const totalTimeElement = document.querySelector('.total-time');
+    
+    if (progressSlider && currentTimeElement && totalTimeElement) {
+        // Update slider position
+        const progress = (state.position / state.duration) * 100;
+        progressSlider.value = progress;
+        
+        // Update time displays
+        currentTimeElement.textContent = formatTime(state.position);
+        totalTimeElement.textContent = formatTime(state.duration);
     }
+}
 
-    spotifyConnect.addEventListener('click', () => {
-        const scope = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state';
-        const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
-        window.location.href = authUrl;
+// Helper function to format time from milliseconds to MM:SS
+function formatTime(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+// Helper function to start playback
+async function startPlayback(token, device_id) {
+    try {
+        // Get user's saved tracks or playlists
+        const response = await fetch('https://api.spotify.com/v1/me/tracks?limit=50', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.items && data.items.length > 0) {
+                // Create a playlist of URIs from saved tracks
+                const uris = data.items.map(item => item.track.uri);
+                
+                // Start playback with the first track
+                await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${device_id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        uris: uris
+                    })
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error starting playback:', error);
+    }
+}
+
+// Update the updateNowPlaying function to remove lyrics-related code
+function updateNowPlaying(track) {
+    const titleElement = document.querySelector('.now-playing-title');
+    const artistElement = document.querySelector('.now-playing-artist');
+    const albumCover = document.querySelector('.album-cover');
+    
+    if (titleElement && artistElement && track) {
+        titleElement.textContent = track.name;
+        const artists = track.artists.map(artist => artist.name).join(', ');
+        artistElement.textContent = artists;
+        
+        // Update album artwork
+        if (albumCover && track.album && track.album.images && track.album.images.length > 0) {
+            const artworkUrl = track.album.images[0].url;
+            albumCover.style.backgroundImage = `url(${artworkUrl})`;
+        }
+    }
+}
+
+// Add this function to lazily load audio
+function setupLazyAudio() {
+    const audioElements = document.querySelectorAll('audio');
+    
+    audioElements.forEach(audio => {
+        // Remove preload attribute and set it programmatically
+        audio.removeAttribute('preload');
+        
+        // Only set src when play is clicked
+        const button = document.querySelector(`.play-pause[data-audio="${audio.id}"]`);
+        if (button) {
+            const originalSrc = audio.src;
+            audio.removeAttribute('src');
+            
+            button.addEventListener('click', () => {
+                if (!audio.src) {
+                    audio.src = originalSrc;
+                }
+                // Rest of your existing play logic
+            });
+        }
     });
-};
+}
 
-// Add these at the top of your script.js file, after the API_URL constant
-let todoInput, todoAdd, todoList;
-let calendar;
+// Add this debounce function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Add this function to help debug by creating test events
+async function createTestEvents() {
+    // Only run if no events exist
+    const checkResponse = await fetch(`${API_URL}/events`);
+    const existingEvents = await checkResponse.json();
+    
+    if (existingEvents.length === 0) {
+        console.log('Creating test events...');
+        
+        // Get today's date
+        const today = new Date();
+        const formatDate = (date) => {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        };
+        
+        // Create sample events for today and upcoming days
+        const testEvents = [
+            { 
+                date: formatDate(today), 
+                title: 'Test Event 1', 
+                color: '#FF5733' 
+            },
+            { 
+                date: formatDate(new Date(today.getTime() + 86400000)), // Tomorrow
+                title: 'Test Event 2', 
+                color: '#33FF57' 
+            },
+            { 
+                date: formatDate(new Date(today.getTime() + 172800000)), // Day after tomorrow
+                title: 'Test Event 3', 
+                color: '#3357FF' 
+            }
+        ];
+        
+        // Add test events
+        for (const event of testEvents) {
+            await fetch(`${API_URL}/events`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(event)
+            });
+        }
+        
+        console.log('Test events created');
+        await loadEvents();
+    }
+}
+
+// Call this in development if needed
+// Uncomment the line below to create test events automatically
+// createTestEvents();
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Initialize todo list elements
-    todoInput = document.querySelector('.todo-input');
-    todoAdd = document.querySelector('.todo-add');
-    todoList = document.querySelector('.todo-list');
-
-    // Add event listeners for todo list
-    todoAdd.addEventListener('click', () => {
-        console.log('Add button clicked');
-        addTodo();
-    });
-
-    todoInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            addTodo();
-        }
-    });
-
-    // Initialize calendar
-    calendar = {
-        currentDate: new Date(),
-        events: {},
-        monthDisplay: document.getElementById('currentMonth'),
-        calendarGrid: document.querySelector('.calendar-grid'),
-        eventModal: document.getElementById('eventModal'),
-        selectedDate: null,
-
-        init() {
-            document.getElementById('prevMonth').addEventListener('click', () => this.changeMonth(-1));
-            document.getElementById('nextMonth').addEventListener('click', () => this.changeMonth(1));
-            document.getElementById('saveEvent').addEventListener('click', () => this.saveEvent());
-            document.getElementById('cancelEvent').addEventListener('click', () => this.closeModal());
-            document.getElementById('deleteEvent').addEventListener('click', () => this.deleteEvent());
-
-            // Remove the localStorage code and just render
-            this.render();
-        },
-
-        changeMonth(delta) {
-            this.currentDate.setMonth(this.currentDate.getMonth() + delta);
-            this.render();
-        },
-
-        formatDate(date) {
-            return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
-        },
-
-        formatDateForDisplay(dateStr) {
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('default', { 
-                month: 'long', 
-                day: 'numeric', 
-                year: 'numeric' 
-            });
-        },
-
-        render() {
-            const year = this.currentDate.getFullYear();
-            const month = this.currentDate.getMonth();
-            
-            this.monthDisplay.textContent = new Date(year, month, 1)
-                .toLocaleDateString('default', { month: 'long', year: 'numeric' });
-
-            // Clear existing days
-            const daysContainer = document.querySelector('.calendar-grid');
-            const weekdayElements = Array.from(daysContainer.querySelectorAll('.weekday'));
-            daysContainer.innerHTML = '';
-            weekdayElements.forEach(el => daysContainer.appendChild(el));
-
-            // Get first day of month and total days
-            const firstDay = new Date(year, month, 1).getDay();
-            const totalDays = new Date(year, month + 1, 0).getDate();
-            
-            // Add previous month's days
-            const prevMonthDays = new Date(year, month, 0).getDate();
-            for (let i = firstDay - 1; i >= 0; i--) {
-                const day = document.createElement('div');
-                day.className = 'calendar-day other-month';
-                day.textContent = prevMonthDays - i;
-                daysContainer.appendChild(day);
-            }
-
-            // Add current month's days
-            for (let i = 1; i <= totalDays; i++) {
-                const day = document.createElement('div');
-                day.className = 'calendar-day';
-                
-                const dateStr = this.formatDate(new Date(year, month, i));
-                
-                // Create date number
-                const dateNumber = document.createElement('span');
-                dateNumber.textContent = i;
-                day.appendChild(dateNumber);
-
-                // Add events if they exist
-                if (this.events[dateStr] && this.events[dateStr].length > 0) {
-                    day.classList.add('has-events');
-                    
-                    const eventsContainer = document.createElement('div');
-                    eventsContainer.className = 'events-container';
-                    
-                    this.events[dateStr].forEach(event => {
-                        const eventPreview = document.createElement('div');
-                        eventPreview.className = 'event-preview';
-                        eventPreview.textContent = event.title;
-                        eventPreview.style.borderColor = event.color;
-                        eventsContainer.appendChild(eventPreview);
-                    });
-                    
-                    day.appendChild(eventsContainer);
-                }
-
-                day.addEventListener('click', () => {
-                    this.selectedDate = dateStr;
-                    this.openModal();
-                });
-                
-                daysContainer.appendChild(day);
-            }
-
-            // Add next month's days
-            const remainingCells = 42 - (firstDay + totalDays); // 42 = 6 rows × 7 days
-            for (let i = 1; i <= remainingCells; i++) {
-                const day = document.createElement('div');
-                day.className = 'calendar-day other-month';
-                day.textContent = i;
-                daysContainer.appendChild(day);
-            }
-        },
-
-        openModal() {
-            this.eventModal.classList.add('active');
-            
-            // Update modal title with selected date
-            const modalDate = document.getElementById('modalDate');
-            modalDate.textContent = this.formatDateForDisplay(this.selectedDate);
-            
-            // Show existing events
-            const eventsContainer = document.querySelector('.modal-events-container');
-            eventsContainer.innerHTML = '';
-            
-            if (this.events[this.selectedDate]) {
-                this.events[this.selectedDate].forEach((event, index) => {
-                    const eventElement = document.createElement('div');
-                    eventElement.className = 'modal-event';
-                    eventElement.innerHTML = `
-                        <span class="event-dot" style="background-color: ${event.color}"></span>
-                        <span class="event-title">${event.title}</span>
-                        <button class="delete-event" data-index="${index}">×</button>
-                    `;
-                    
-                    // Add delete handler
-                    eventElement.querySelector('.delete-event').addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        this.deleteEvent(index);
-                    });
-                    
-                    eventsContainer.appendChild(eventElement);
-                });
-            }
-            
-            // Clear input fields for new event
-            document.getElementById('eventTitle').value = '';
-            document.getElementById('eventColor').value = '#ffb6c1';
-        },
-
-        saveEvent: async function() {
-            const title = document.getElementById('eventTitle').value.trim();
-            const color = document.getElementById('eventColor').value;
-
-            if (title && this.selectedDate) {
-                try {
-                    const response = await fetch(`${API_URL}/events`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            date: this.selectedDate,
-                            title,
-                            color
-                        })
-                    });
-                    const event = await response.json();
-                    await loadEvents(); // Reload events from server
-                    document.getElementById('eventTitle').value = '';
-                    this.openModal();
-                } catch (error) {
-                    console.error('Error saving event:', error);
-                }
-            }
-        },
-
-        deleteEvent: async function(index) {
-            if (this.selectedDate && this.events[this.selectedDate]) {
-                try {
-                    const eventId = this.events[this.selectedDate][index]._id;
-                    await fetch(`${API_URL}/events/${eventId}`, {
-                        method: 'DELETE'
-                    });
-                    await loadEvents(); // Reload events from server
-                    this.openModal();
-                } catch (error) {
-                    console.error('Error deleting event:', error);
-                }
-            }
-        },
-
-        closeModal() {
-            this.eventModal.classList.remove('active');
-            this.selectedDate = null;
-        }
-    };
-
-    // Load initial data first, then initialize calendar
-    try {
-        console.log('Loading initial data...');
-        await Promise.all([loadTodos(), loadEvents()]);
-        console.log('Initial data loaded successfully');
-        // Initialize calendar after loading events
-        calendar.init();
-    } catch (error) {
-        console.error('Error loading initial data:', error);
-    }
-
+    // Initialize all elements first
+    const todoInput = document.querySelector('.todo-input');
+    const todoAdd = document.querySelector('.todo-add');
+    const todoList = document.querySelector('.todo-list');
     const playPauseButtons = document.querySelectorAll('.play-pause');
     const volumeSliders = document.querySelectorAll('.volume');
+    const timerDisplay = document.querySelector('.timer-display');
+    const timerControl = document.querySelector('.timer-control');
+    const timerPresets = document.querySelectorAll('.timer-preset');
+    const spotifyConnect = document.getElementById('spotify-connect');
 
-    // Function to handle play/pause
-    function togglePlay(button, audioId) {
-        const audio = document.getElementById(audioId);
+    spotifyConnect.addEventListener('click', () => {
+        console.log('Connect button clicked');
+        const scope = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state user-library-read';
         
-        if (audio.paused) {
-            audio.play()
-                .then(() => {
-                    button.textContent = 'Pause';
-                })
-                .catch(error => {
-                    console.error('Error playing audio:', error);
-                    button.textContent = 'Play';
-                });
-        } else {
-            audio.pause();
-            button.textContent = 'Play';
+        if (!clientId) {
+            console.error('Client ID is undefined. Please check your configuration.');
+            return;
         }
-    }
-
-    // Function to handle volume
-    function adjustVolume(slider, audioId) {
-        const audio = document.getElementById(audioId);
-        audio.volume = slider.value / 100;
-    }
-
-    // Add event listeners to play/pause buttons
+        
+        // IMPORTANT: This must match EXACTLY what's in your Spotify Developer Dashboard
+        const redirectUri = window.location.origin; // Use the current origin
+        
+        const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
+        console.log('Auth URL:', authUrl);
+        
+        // Direct navigation instead of opening a new window
+        window.location.href = authUrl;
+    });
+    // Audio player functionality
     playPauseButtons.forEach(button => {
         button.addEventListener('click', () => {
+            console.log('Play/Pause clicked'); // Debug log
             const audioId = button.getAttribute('data-audio');
-            togglePlay(button, audioId);
-        });
-    });
-
-    // Add event listeners to volume sliders
-    volumeSliders.forEach(slider => {
-        slider.addEventListener('input', () => {
-            const audioId = slider.getAttribute('data-audio');
             const audio = document.getElementById(audioId);
-            if (audio) {
-                // Add error checking for the audio file
-                if (audio.error) {
-                    console.error(`Error with audio ${audioId}:`, audio.error);
-                    return;
-                }
-
-                audio.volume = slider.value / 100;
-                
-                // If audio hasn't started playing yet, start it
-                if (audio.paused) {
-                    audio.play()
-                        .then(() => {
-                            const button = document.querySelector(`.play-pause[data-audio="${audioId}"]`);
-                            if (button) button.textContent = 'Pause';
-                            console.log(`Playing ${audioId}`); // Debug log
-                        })
-                        .catch(error => {
-                            console.error(`Error playing ${audioId}:`, error);
-                            const button = document.querySelector(`.play-pause[data-audio="${audioId}"]`);
-                            if (button) button.textContent = 'Play';
-                        });
-                }
+            
+            
+            if (audio.paused) {
+                audio.play()
+                    .then(() => {
+                        button.textContent = 'Pause';
+                    })
+                    .catch(error => {
+                        console.error('Error playing audio:', error);
+                        button.textContent = 'Play';
+                    });
             } else {
-                console.error(`Audio element not found: ${audioId}`);
+                audio.pause();
+                button.textContent = 'Play';
             }
         });
-
-        // Prevent drag behavior
-        slider.addEventListener('dragstart', (e) => {
-            e.preventDefault();
-        });
     });
 
-    // Add ended event listeners to reset button text when audio finishes
-    document.querySelectorAll('audio').forEach(audio => {
-        audio.addEventListener('ended', () => {
-            const button = document.querySelector(`.play-pause[data-audio="${audio.id}"]`);
-            button.textContent = 'Play';
+    // Volume slider functionality
+    volumeSliders.forEach(slider => {
+        slider.addEventListener('input', () => {
+            console.log('Volume changed'); // Debug log
+            const audioId = slider.getAttribute('data-audio');
+            const audio = document.getElementById(audioId);
+            audio.volume = slider.value / 100;
         });
     });
 
     // Timer functionality
-    const timerDisplay = document.querySelector('.timer-display');
-    const timerControl = document.querySelector('.timer-control');
-    const timerPresets = document.querySelectorAll('.timer-preset');
-    
-    let timeLeft = 25 * 60; // Default 25 minutes in seconds
+    let timeLeft = 25 * 60;
     let timerId = null;
 
-    function updateTimerDisplay() {
-        const minutes = Math.floor(timeLeft / 60);
-        const seconds = timeLeft % 60;
-        timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-
-    function startTimer() {
+    timerControl.addEventListener('click', () => {
+        console.log('Timer clicked'); // Debug log
         if (timerId === null) {
             timerId = setInterval(() => {
                 if (timeLeft > 0) {
@@ -734,9 +719,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     clearInterval(timerId);
                     timerId = null;
                     timerControl.textContent = 'Start';
-                    // Optional: Play a sound when timer ends
-                    const audio = new Audio('path/to/timer-sound.mp3');
-                    audio.play();
                 }
             }, 1000);
             timerControl.textContent = 'Pause';
@@ -745,23 +727,130 @@ document.addEventListener('DOMContentLoaded', async () => {
             timerId = null;
             timerControl.textContent = 'Start';
         }
-    }
-
-    timerPresets.forEach(preset => {
-        preset.addEventListener('click', () => {
-            const minutes = parseInt(preset.dataset.minutes);
-            timeLeft = minutes * 60;
-            updateTimerDisplay();
-            // Reset timer state
-            if (timerId) {
-                clearInterval(timerId);
-                timerId = null;
-                timerControl.textContent = 'Start';
-            }
-        });
     });
 
-    timerControl.addEventListener('click', startTimer);
+    // Todo functionality
+    todoAdd.addEventListener('click', () => {
+        console.log('Add todo clicked'); // Debug log
+        addTodo();
+    });
+
+    todoInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            console.log('Enter pressed in todo input'); // Debug log
+            addTodo();
+        }
+    });
+
+    // Initialize data
+    try {
+        await Promise.all([loadTodos(), loadEvents()]);
+        calendar.init();
+    } catch (error) {
+        console.error('Error during initialization:', error);
+    }
+
+    // Timer functionality
+    function updateTimerDisplay() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // Todo List functionality
+    async function loadTodos() {
+        try {
+            console.log('Loading todos...'); // Debug log
+            const response = await fetch(`${API_URL}/todos`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const todos = await response.json();
+            console.log('Loaded todos:', todos); // Debug log
+            
+            // Clear the list
+            todoList.innerHTML = '';
+            
+            // Add each todo
+            todos.forEach(todo => {
+                const todoItem = createTodoItem(todo.text, todo._id);
+                todoList.appendChild(todoItem);
+            });
+        } catch (error) {
+            console.error('Error loading todos:', error);
+        }
+    }
+
+    async function addTodo() {
+        const text = todoInput.value.trim();
+        console.log('Adding todo:', text); // Debug log
+        
+        if (text) {
+            try {
+                const response = await fetch(`${API_URL}/todos`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.details || `HTTP error! status: ${response.status}`);
+                }
+                
+                const todo = await response.json();
+                console.log('Todo created:', todo); // Debug log
+                
+                // Refresh the entire todo list instead of just appending
+                await loadTodos();
+                todoInput.value = '';
+            } catch (error) {
+                console.error('Error saving todo:', error);
+            }
+        }
+    }
+
+    async function deleteTodo(id) {
+        try {
+            await fetch(`${API_URL}/todos/${id}`, {
+                method: 'DELETE'
+            });
+        } catch (error) {
+            console.error('Error deleting todo:', error);
+        }
+    }
+
+    // Update createTodoItem to handle MongoDB IDs
+    function createTodoItem(text, id) {
+        const todoItem = document.createElement('div');
+        todoItem.className = 'todo-item';
+        
+        const checkbox = document.createElement('div');
+        checkbox.className = 'todo-checkbox';
+        
+        const todoText = document.createElement('span');
+        todoText.className = 'todo-text';
+        todoText.textContent = text;
+
+        todoItem.appendChild(checkbox);
+        todoItem.appendChild(todoText);
+
+        checkbox.addEventListener('click', async () => {
+            checkbox.classList.toggle('checked');
+            todoItem.classList.toggle('completed');
+            if (checkbox.classList.contains('checked')) {
+                setTimeout(async () => {
+                    todoItem.style.opacity = '0';
+                    await deleteTodo(id);
+                    setTimeout(() => todoItem.remove(), 300);
+                }, 1000);
+            }
+        });
+
+        return todoItem;
+    }
 
     // Modal functionality
     const infoButton = document.querySelector('.info-button');
@@ -796,41 +885,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (breezeAudio) {
         breezeAudio.addEventListener('loadeddata', () => {
-            breezeAudio.volume = 2.0; // Boost volume
+            breezeAudio.volume = Math.min(2.0, 1.0); // Ensure volume is capped at 1.0
         });
     }
     
     if (peopleAudio) {
         peopleAudio.addEventListener('loadeddata', () => {
-            peopleAudio.volume = 2.0; // Boost volume
+            peopleAudio.volume = Math.min(2.0, 1.0); // Ensure volume is capped at 1.0
         });
     }
-});
 
-// Update loadEvents function to properly update the calendar
-async function loadEvents() {
-    try {
-        const response = await fetch(`${API_URL}/events`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const events = await response.json();
-        console.log('Loaded events:', events); // Debug log
-        
-        calendar.events = {};
-        events.forEach(event => {
-            if (!calendar.events[event.date]) {
-                calendar.events[event.date] = [];
-            }
-            calendar.events[event.date].push({
-                title: event.title,
-                color: event.color,
-                _id: event._id
-            });
-        });
-        
-        calendar.render();
-    } catch (error) {
-        console.error('Error loading events:', error);
-    }
-} 
+    // Add this to your DOMContentLoaded event listener
+    const eventTitle = document.getElementById('eventTitle');
+    const eventColor = document.getElementById('eventColor');
+    const previewTitle = document.getElementById('previewTitle');
+    const previewColor = document.getElementById('previewColor');
+
+    // Update preview when typing
+    eventTitle.addEventListener('input', () => {
+        previewTitle.textContent = eventTitle.value || 'New Event';
+    });
+
+    // Update preview color when changed
+    eventColor.addEventListener('input', () => {
+        previewColor.style.backgroundColor = eventColor.value;
+    });
+
+    // Initialize preview color
+    previewColor.style.backgroundColor = eventColor.value;
+
+    // Check for Spotify callback when the page loads
+    handleSpotifyCallback();
+
+    // Add cleanup for any open intervals when the page unloads
+    window.addEventListener('beforeunload', () => {
+        clearInterval(progressInterval);
+    });
+
+    // Add this line
+    setupLazyAudio();
+}); 

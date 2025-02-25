@@ -6,6 +6,7 @@
     <title>Spring Ambience Mixer</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
     <button class="info-button">i</button>
@@ -37,66 +38,68 @@
             <div class="audio-players">
                 <div class="audio-player">
                     <p>Birds Chirping</p>
-                    <audio id="birds" src="audio/birds-chirping.mp3" loop></audio>
+                    <audio id="birds" src="/audio/birds-chirping.mp3" loop></audio>
                     <button class="play-pause" data-audio="birds">Play</button>
                     <input type="range" class="volume" min="0" max="100" value="50" data-audio="birds">
                 </div>
 
                 <div class="audio-player">
                     <p>Gentle Breeze</p>
-                    <audio id="breeze" src="audio/wind.mp3" preload="auto" loop volume="2.0"></audio>
+                    <audio id="breeze" src="/audio/wind.mp3" preload="auto" loop></audio>
                     <button class="play-pause" data-audio="breeze">Play</button>
                     <input type="range" class="volume" min="0" max="100" value="50" data-audio="breeze">
                 </div>
 
                 <div class="audio-player">
                     <p>Rain Drops</p>
-                    <audio id="rain" src="audio/rain.mp3" loop></audio>
+                    <audio id="rain" src="/audio/rain.mp3" loop></audio>
                     <button class="play-pause" data-audio="rain">Play</button>
                     <input type="range" class="volume" min="0" max="100" value="50" data-audio="rain">
                 </div>
 
                 <div class="audio-player">
                     <p>Stream Flow</p>
-                    <audio id="stream" src="audio/stream.mp3" loop></audio>
+                    <audio id="stream" src="/audio/stream.mp3" loop></audio>
                     <button class="play-pause" data-audio="stream">Play</button>
                     <input type="range" class="volume" min="0" max="100" value="50" data-audio="stream">
                 </div>
 
                 <div class="audio-player">
                     <p>Garden Chimes</p>
-                    <audio id="chimes" src="audio/windchimes.mp3" loop></audio>
+                    <audio id="chimes" src="/audio/windchimes.mp3" loop></audio>
                     <button class="play-pause" data-audio="chimes">Play</button>
                     <input type="range" class="volume" min="0" max="100" value="50" data-audio="chimes">
                 </div>
 
                 <div class="audio-player">
                     <p>People Talking</p>
-                    <audio id="people" src="audio/people-talking.mp3" preload="auto" loop volume="2.0"></audio>
+                    <audio id="people" src="/audio/people-talking.mp3" preload="auto" loop></audio>
                     <button class="play-pause" data-audio="people">Play</button>
                     <input type="range" class="volume" min="0" max="100" value="50" data-audio="people">
                 </div>
             </div>
 
             <div class="productivity-section">
-                <div class="productivity-card timer-container">
-                    <p>Timer</p>
-                    <div class="timer-display">25:00</div>
-                    <div class="timer-buttons">
-                        <button class="timer-preset" data-minutes="25">25 min</button>
-                        <button class="timer-preset" data-minutes="5">5 min</button>
-                        <button class="timer-control">Start</button>
+                <div class="productivity-left">
+                    <div class="productivity-card timer-container">
+                        <p>Timer</p>
+                        <div class="timer-display">25:00</div>
+                        <div class="timer-buttons">
+                            <button class="timer-preset" data-minutes="25">25 min</button>
+                            <button class="timer-preset" data-minutes="5">5 min</button>
+                            <button class="timer-control">Start</button>
+                        </div>
                     </div>
-                </div>
 
-                <div class="productivity-card todo-container">
-                    <p>Todo List</p>
-                    <div class="todo-input-container">
-                        <input type="text" class="todo-input" placeholder="Add a task...">
-                        <button class="todo-add">Add</button>
-                    </div>
-                    <div class="todo-list">
-                        <!-- Tasks will be added here dynamically -->
+                    <div class="productivity-card todo-container">
+                        <p>Todo List</p>
+                        <div class="todo-input-container">
+                            <input type="text" class="todo-input" placeholder="Add a task...">
+                            <button class="todo-add">Add</button>
+                        </div>
+                        <div class="todo-list">
+                            <!-- Tasks will be added here dynamically -->
+                        </div>
                     </div>
                 </div>
 
@@ -108,13 +111,13 @@
                         <button class="calendar-nav" id="nextMonth">&gt;</button>
                     </div>
                     <div class="calendar-grid">
-                        <div class="weekday">Su</div>
-                        <div class="weekday">Mo</div>
-                        <div class="weekday">Tu</div>
-                        <div class="weekday">We</div>
-                        <div class="weekday">Th</div>
-                        <div class="weekday">Fr</div>
-                        <div class="weekday">Sa</div>
+                        <div class="weekday">Sun</div>
+                        <div class="weekday">Mon</div>
+                        <div class="weekday">Tue</div>
+                        <div class="weekday">Wed</div>
+                        <div class="weekday">Thu</div>
+                        <div class="weekday">Fri</div>
+                        <div class="weekday">Sat</div>
                         <!-- Days will be added dynamically -->
                     </div>
                     <div id="eventModal" class="event-modal">
@@ -124,6 +127,10 @@
                                 <!-- Existing events will be listed here -->
                             </div>
                             <div class="new-event-form">
+                                <div class="event-preview">
+                                    Preview: <span class="event-color" id="previewColor"></span>
+                                    <span id="previewTitle">New Event</span>
+                                </div>
                                 <input type="text" id="eventTitle" placeholder="Add new event...">
                                 <input type="color" id="eventColor" value="#ffb6c1">
                                 <button id="saveEvent">Add</button>
@@ -146,5 +153,14 @@
     <script src="config.js"></script>
     <script src="script.js"></script>
     <script src="https://sdk.scdn.co/spotify-player.js"></script>
+    <script>
+        document.getElementById('connect-button').addEventListener('click', function(event) {
+            // Ensure the event is correctly handled
+            console.log('Connect button clicked');
+            // Optionally prevent default behavior if needed
+            // event.preventDefault();
+            // Perform any additional actions
+        });
+    </script>
 </body>
-</html> 
+</html>
